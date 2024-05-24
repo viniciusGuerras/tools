@@ -45,13 +45,7 @@ class Activation_Softmax:
     def forward(self, inputs):
         self.exponents = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
         self.output = self.exponents / np.sum(self.exponents, axis=1, keepdims=True)
-    
-    def backward(self, dvalues):
-        dvalues = np.array(dvalues)
-        dvalues.sort(kind='quicksort' ,axis=0)[::-1]
-        dvalues[0] =  dvalues[0] * (1 - dvalues[0])
-        dvalues[0, :] *= dvalues[0]
-        self.dinputs = dvalues
+        return self.output
 
 class Sum_Of_Squared_Residuals:
     def forward(self, y_true, y_pred):
@@ -68,13 +62,22 @@ class Sum_Of_Squared_Residuals:
 
 class Cross_Entropy:
     def forward(self, y_true, y_pred):
-        self.epsilon = 1e-15
-        self.y_pred = y_pred.flatten()
-        self.sample_size = y_true.shape[0]
-        self.output = -np.log(y_pred + self.epsilon)
-    def backward(self): 
-        self.output = (-1/(self.y_pred + self.epsilon))
-    
+        self.y_true = y_true
+        self.y_pred = y_pred
+        m = y_pred.shape[0]
+        self.soft = Activation_Softmax()
+        p = self.soft.forward(y_pred)
+        log_likelihood = -np.log(p[range(m), y_true])
+        loss = np.sum(log_likelihood) / m
+        return loss
+    def backward(self):
+        m = self.y_pred.shape[0]
+        grad = self.soft.forward(self.y_pred)
+        grad[range(m), self.y_true] -= 1
+        grad = grad/m
+        return grad
+
+
 class Optimizer_SGD:
     def __init__(self, learning_rate):
         self.learning_rate = learning_rate
@@ -130,12 +133,12 @@ class Model:
             if epoch % 100 == 0:
                 print(f"Epoch {epoch}: Loss = {loss}")
             
-"""
+
 
 model = Model()
 model.addLayer(Dense_layer(64, 512), Activation_Relu())
 model.addLayer(Dense_layer(512, 512), Activation_Relu())
-model.addLayer(Dense_layer(512, 10), Activation_Softmax())
+model.addLayer(Dense_layer(512, 10))
 model.addLoss(Cross_Entropy())
 model.addOptimizer(Optimizer_SGD(0.001))
-model.train(1000, X, y)"""
+model.train(200, X, y)
