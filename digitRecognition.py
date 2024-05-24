@@ -1,7 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import numpy as np 
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 
 from sklearn import datasets
@@ -9,6 +9,8 @@ digits = datasets.load_digits()
 
 X = digits.data
 y = digits.target
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 class Dense_layer:
     def __init__(self, n_inputs, n_neurons):
@@ -32,15 +34,7 @@ class Activation_Relu:
     def backward(self, dvalues):
         self.dinputs = dvalues.copy()
         self.dinputs[self.inputs <= 0] = 0
-
-class Leaky_Activation_Relu:
-    def forward(self, inputs):
-        self.inputs = inputs
-        self.output = np.where(inputs > 0, inputs, 0.01 * inputs)
         
-    def backward(self, dvalues):
-        self.dinputs = np.where(self.inputs > 0, dvalues, 0.01 * dvalues)
-
 class Activation_Softmax:
     def forward(self, inputs):
         self.exponents = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
@@ -141,4 +135,12 @@ model.addLayer(Dense_layer(512, 512), Activation_Relu())
 model.addLayer(Dense_layer(512, 10))
 model.addLoss(Cross_Entropy())
 model.addOptimizer(Optimizer_SGD(0.001))
-model.train(200, X, y)
+model.train(200, X_train, y_train)
+
+model.forward(X_test)
+predictions = np.argmax(model.core, axis=1)
+for i in range(len(predictions)):
+    print(X_test.index[i])
+    print(f"Predicted: {predictions[i]}, True: {y_test[i]}")
+accuracy = np.mean(predictions == y_test)
+print(f"Accuracy on the testing set: {accuracy}")
