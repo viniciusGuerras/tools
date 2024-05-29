@@ -92,6 +92,7 @@ for i in range(epochs):
 y_train_pred = regression.forward(X_train)
 y_test_pred = regression.forward(X_test)
 
+print(regression.weight)
 
 plt.figure(figsize=(12, 6))
 plt.scatter(y_train, y_train_pred, color='blue', label='Train data')
