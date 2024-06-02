@@ -1,4 +1,7 @@
+import numpy as np
 
+
+#still need to change the implementation by adding bias and changing the convolve method to be correct
 class Convolutional_layer:
     def __init__(self, kernel_width=3, kernel_height=3, pooling_width=2, pooling_height=2, padding=0, stride=1):
         self.kernel_width = kernel_width
@@ -64,5 +67,7 @@ class Convolutional_layer:
         self.max_pool = self.max_pooling(self.conv)
         self.output = self.max_pool
         return self.output
+    
+    #add the backward propagation
     def backward(self, dvalues):
         pass
