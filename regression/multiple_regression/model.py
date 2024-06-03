@@ -41,7 +41,7 @@ data[list_of_x_cols] = scaler.fit_transform(data[list_of_x_cols])
 
 X_train, X_test, y_train, y_test = train_test_split(data[list_of_x_cols], data[y_col],test_size=0.2)
 
-class Linear_regression:
+class Multiple_regression:
     def __init__(self, n_features):
         self.weight = 0.1 * np.random.randn(n_features)
         self.bias = np.zeros(1)
@@ -72,7 +72,7 @@ class Mean_Squared_Error:
         return self.dinput
 
 losses = []
-regression = Linear_regression(X_train.shape[1])
+regression = Multiple_regression(X_train.shape[1])
 loss = Mean_Squared_Error()
 learning_rate = 0.095
 epochs = 2500
