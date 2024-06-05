@@ -21,6 +21,15 @@ class Softmax:
         pass
 
 
+class Tanh:
+    def forward(self, inputs):
+        self.output = (np.exp(inputs) - np.exp(-inputs))/(np.exp(inputs) + np.exp(-inputs))
+        return self.output
+
+    def backward(self, dvalues):
+        self.dinput = (1 - (self.output ** 2)) * dvalues
+        return self.dinput
+    
 class Relu:
     def forward(self, inputs):
         self.inputs = inputs

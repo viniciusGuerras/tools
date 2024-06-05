@@ -1,5 +1,5 @@
 import numpy as np
-
+from tools import activations
 
 
 class Mean_Squared_Error:
@@ -52,7 +52,7 @@ class Cross_Entropy:
         self.y_true = y_true
         self.y_pred = y_pred
         m = y_pred.shape[0]
-        self.soft = Activation_Softmax()
+        self.soft = activations.Softmax()
         p = self.soft.forward(y_pred)
         log_likelihood = -np.log(p[range(m), y_true])
         loss = np.sum(log_likelihood) / m
