@@ -37,17 +37,18 @@ class Relu:
     def forward(self, inputs):
         self.inputs = inputs
         self.output = np.maximum(0, inputs)  
-        
+        return self.output
+    
     def backward(self, dvalues):
         self.dinputs = dvalues.copy()
         self.dinputs[self.inputs <= 0] = 0
-
+        return self.dinputs
 
 class Leaky_Relu:
     def forward(self, inputs):
         self.inputs = inputs
         self.output = np.where(inputs > 0, inputs, 0.01 * inputs)
-        
+        return self.output
     def backward(self, dvalues):
         self.dinputs = np.where(self.inputs > 0, dvalues, 0.01 * dvalues)
-
+        return self.dinputs
