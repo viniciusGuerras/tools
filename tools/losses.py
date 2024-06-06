@@ -46,20 +46,16 @@ class Binary_Cross_Entropy:
         self.dinputs = -(self.y_true/ y_pred_clipped) + ((1 - self.y_true)/ (1 - y_pred_clipped))
         return self.dinputs
     
-#TODO Croess entropy with softmax calculated inside, i need to bring paper and do the math of them separately
-class Cross_Entropy:
-    def forward(self, y_true, y_pred):
-        self.y_true = y_true
-        self.y_pred = y_pred
-        m = y_pred.shape[0]
-        self.soft = activations.Softmax()
-        p = self.soft.forward(y_pred)
-        log_likelihood = -np.log(p[range(m), y_true])
-        loss = np.sum(log_likelihood) / m
-        return loss
-    def backward(self):
-        m = self.y_pred.shape[0]
-        grad = self.soft.forward(self.y_pred)
-        grad[range(m), self.y_true] -= 1
-        grad = grad/m
-        return grad
+
+class Cross_Entropy:	
+	def forward(self, y_true, y_pred_prob):
+		self.y_true = y_true
+		self.y_pred = y_pred_prob
+		y_pred_prob = np.clip(y_pred_prob, 1e-15, 1 - 1e-15)
+		self.loss = -np.sum(y_true * np.log(y_pred_prob))
+		return self.loss
+	
+	def backward(self):
+		self.dinputs = -self.y_true/self.y_pred
+		self.dinputs = self.dinputs / self.y_true.shape[0]
+		return self.dinputs
