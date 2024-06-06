@@ -28,18 +28,13 @@ class Convolutional:
         else:
             image_padded = img
 
-        #(lines, columns, depth)
         output = np.zeros((x_output, y_output, kernels.shape[3]))
 
-        #(for every kernel)
         for k in range(kernels.shape[0]):
-            #(current kernel and bias)
             kernel = kernels[k]
             bias = self.biases[k]
-            #(for x and y in ouput)
             for y in range(y_output):
                 for x in range(x_output):
-                    #select the window of correlation, sum it * the kernel and add the bias
                     x_start = x * self.stride
                     x_end = x_start + x_kernel_shape
                     y_start = y * self.stride
