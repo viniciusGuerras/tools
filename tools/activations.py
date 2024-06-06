@@ -11,16 +11,19 @@ class Sigmoid:
         return self.dinput
     
 
+
 class Softmax:
     def forward(self, inputs):
         self.exponents = np.exp(inputs - np.max(inputs, axis=1, keepdims=True))
         self.output = self.exponents / np.sum(self.exponents, axis=1, keepdims=True)
         return self.output
-    #need to implement this
+
     def backward(self, dvalues):
-        pass
-
-
+        for index, (single_output, single_dvalues) in enumerate(zip(self.output,         dvalues)):
+                single_output = single_output.reshape(-1, 1)
+                jacobian_matrix = np.diagflat(single_output) - np.dot(single_output,             single_output.T)
+                self.dinputs[index] = np.dot(jacobian_matrix, single_dvalues)
+                
 class Tanh:
     def forward(self, inputs):
         self.output = (np.exp(inputs) - np.exp(-inputs))/(np.exp(inputs) + np.exp(-inputs))
