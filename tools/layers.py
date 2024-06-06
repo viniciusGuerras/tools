@@ -1,77 +1,122 @@
 import numpy as np
 
-#TODO still need to change the implementation by adding bias and changing the convolve method to be correct
 class Convolutional:
-    def __init__(self, depth, kernel_width=3, kernel_height=3, padding=0, stride=1):
+    def __init__(self, num_kernels, depth, kernel_width=3, kernel_height=3, padding=0, stride=1):
+        self.num_kernels = num_kernels 
         self.kernel_width = kernel_width
-        self.kernel_height = kernel_height
-        self.kernel = np.random.randn(self.kernel_width, self.kernel_height, depth)
+        self.kernel_height = kernel_height 
+        self.padding = padding 
+        self.stride = stride
+        self.kernels = np.random.randn(num_kernels, self.kernel_width,self.kernel_height, depth)
+        self.biases = np.random.randn(num_kernels)
 
-    def convolve(self, img, padding=0, stride=1):
-        x_kern_shape = self.kernel_width 
-        y_kern_shape = self.kernel_height 
+    def convolve(self, img, kernels):
+        if len(img.shape) < 3:
+            raise ValueError("Input must have at least three dimensions (height, width, depth).")
+          
+        x_kernel_shape = kernels.shape[2] 
+        y_kernel_shape = kernels.shape[1] 
         
         x_img_shape = img.shape[0] 
         y_img_shape = img.shape[1]
 
-        x_output = int((x_img_shape + (2 * padding) - x_kern_shape)/ stride) + 1
-        y_output = int((y_img_shape + (2 * padding) - y_kern_shape)/ stride) + 1
+        x_output = int((x_img_shape + (2 * self.padding) - x_kernel_shape)/ self.stride) + 1
+        y_output = int((y_img_shape + (2 * self.padding) - y_kernel_shape)/ self.stride) + 1
         
-        if padding != 0:
-            image_padded = np.zeros((img.shape[0] + padding*2, img.shape[1] + padding*2))
-            image_padded[int(padding):int(-1 * padding), int(padding):int(-1 * padding)] = img
+        if self.padding != 0:
+            image_padded = np.pad(img, ((self.padding, self.padding), (self.padding, self.padding), (0, 0)), mode='constant', constant_values=0)
         else:
             image_padded = img
 
-        convolutions = np.zeros((x_output, y_output))
+        #(lines, columns, depth)
+        output = np.zeros((x_output, y_output, kernels.shape[3]))
 
-        for _ in range(img.shape[3]):
-            result = np.convolve(img, self.kernel)
-            convolutions[_] = result
-            
-        return convolutions
-       
+        #(for every kernel)
+        for k in range(kernels.shape[0]):
+            #(current kernel and bias)
+            kernel = kernels[k]
+            bias = self.biases[k]
+            #(for x and y in ouput)
+            for y in range(y_output):
+                for x in range(x_output):
+                    #select the window of correlation, sum it * the kernel and add the bias
+                    x_start = x * self.stride
+                    x_end = x_start + x_kernel_shape
+                    y_start = y * self.stride
+                    y_end = y_start + y_kernel_shape
+                    img_slice = image_padded[x_start:x_end, y_start:y_end, :]
+                    output[x, y, k] = np.sum(img_slice * kernel) + bias
+        return output
+    
     def forward(self, input):
         self.input = input
-        self.conv = self.convolve(input)
-        print(self.conv)
-        self.max_pool = self.max_pooling(self.conv)
-        self.output = self.max_pool
+        self.output = self.convolve(input, self.kernels)
         return self.output
     
-    #add the backward propagation
     def backward(self, dvalues):
-        pass
+        self.dinput = np.zeros_like(self.input)
+        dx_padded = np.zeros_like(self.dinput)
+        
+        x_kernel_shape = self.kernels.shape[2]
+        y_kernel_shape = self.kernels.shape[1]
+        
+        for k in range(self.num_kernels):
+            kernel = self.kernels[k]
+            for y in range(dvalues.shape[1]):
+                for x in range(dvalues.shape[0]):
+                    x_start = x * self.stride
+                    x_end = x_start + x_kernel_shape
+                    y_start = y * self.stride
+                    y_end = y_start + y_kernel_shape
+                    img_slice = self.input[x_start:x_end, y_start:y_end, :]
+                    dx_padded[x_start:x_end, y_start:y_end, :] += kernel * dvalues[x, y, k]
+                    
+        if self.padding != 0:
+            self.dinput = dx_padded[self.padding:-self.padding, self.padding:-self.padding, :]
+        else:
+            self.dinput = dx_padded
+            
+        return self.dinput
 
 
-#TODO implement the pooling layer logic
+
 class Pooling:
-    def __init__(self, pooling_width=2, pooling_height=2, padding=0, stride=1):
+    def __init__(self, pooling_width=2, pooling_height=2):
         self.pooling_width = pooling_width
         self.pooling_height = pooling_height
 
-    def max_pooling(self, convolved_image, padding=0):
-        output_height = int(convolved_image.shape[0] // self.pooling_height)
-        output_width = int(convolved_image.shape[1] // self.pooling_width)
-
-        pooling = np.zeros((output_height, output_width))
-
-        pooling_result = np.zeros((output_height, output_width))
-        for i in range(0, output_height * self.pooling_height, self.pooling_height):
-            for j in range(0, output_width * self.pooling_width, self.pooling_width):
-                patch = convolved_image[i:i+self.pooling_height, j:j+self.pooling_height]
-                result = np.max(patch)
-                pooling_result[i // self.pooling_height, j // self.pooling_width] = result
-        pooling = pooling_result
-
+    def max_pooling(self, img):
+        output_height = img.shape[0] // self.pooling_height
+        output_width = img.shape[1] // self.pooling_width
+        depth = img.shape[2]
+        pooling = np.zeros((output_height, output_width, depth))
+        for l in range(depth):
+            for i in range(0, output_height * self.pooling_height, self.pooling_height):
+                for j in range(0, output_width * self.pooling_width, self.pooling_width):
+                    patch = img[i:i+self.pooling_height, j:j+self.pooling_height,l]
+                    result = np.max(patch)
+                    pooling[i // self.pooling_height, j // self.pooling_width, l] = result
+            
         return pooling
     
-    def forward(self):
-        pass
+    def forward(self, img):
+        self.img = img 
+        self.output = self.max_pooling(img)
+        return self.output
 
-    def backward(self):
-        pass
-
+    def backward(self, dvalues):
+        dinput = np.zeros_like(self.img)
+        output_height, output_width, depth = dvalues.shape
+        
+        for l in range(depth):
+            for i in range(output_height):
+                for j in range(output_width):
+                    patch = self.img[i*self.pooling_height:(i+1)*self.pooling_height, j*self.pooling_width:(j+1)*self.pooling_width, l]
+                    max_val = self.output[i, j, l]
+                    mask = (patch == max_val)
+                    dinput[i*self.pooling_height:(i+1)*self.pooling_height, j*self.pooling_width:(j+1)*self.pooling_width, l] = mask * dvalues[i, j, l]
+                    
+        return dinput
 
 
 class Fully_Connected:
@@ -88,4 +133,5 @@ class Fully_Connected:
         self.dbiases = np.sum(dvalues, axis=0, keepdims=True)
         self.dinputs = np.dot(dvalues, self.weights.T)
 
-    
+
+
