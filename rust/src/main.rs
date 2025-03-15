@@ -1,39 +1,54 @@
 //rustup doc --book
 
+use regex::Regex;
 use std::{collections::{HashMap, HashSet}, vec};
 
-fn string_to_chars(input: Vec<&str>) -> Vec<Vec<char>> {
-    let result: Vec<Vec<char>> = input
-        .iter() 
-        .map(|phrase| phrase.chars().filter(|c| !c.is_whitespace()).collect()) 
-        .collect(); 
+fn string_to_chars(input: Vec<&str>) -> Vec<Vec<String>> {
+    let re = Regex::new(r"[A-Za-z0-9]+|[[:punct:]]+").unwrap();
+    
+    let result: Vec<Vec<String>> = input
+        .iter()
+        .flat_map(|phrase| {
+            re.find_iter(phrase)  
+                .map(|mat| mat.as_str())  
+                .map(|token| {
+                    token.chars() 
+                        .map(|c| c.to_string())  
+                        .collect::<Vec<String>>()  
+                })
+        })
+        .collect();  
 
     result
 }
 
-fn initialize_vocabulary(input: &Vec<Vec<char>>) -> Vec<char> {
+fn initialize_vocabulary(input: &Vec<Vec<String>>) -> Vec<String> {
     let mut unique_chars = HashSet::new();
     let mut result = Vec::new();
 
     for letters in input {
-        for letter in letters {
-            if unique_chars.insert(*letter) { 
-                result.push(*letter); 
+        for letter in letters.iter(){
+            if unique_chars.insert(letter) { 
+                result.push(letter.clone());
             }
         }
     }
     result
 }
 
-fn char_pair_frequency(phrases: &Vec<Vec<char>>) -> HashMap<Vec<char>, i32> {
+fn char_pair_frequency(phrases: &Vec<Vec<String>>) -> HashMap<Vec<char>, i32> {
     let mut result: HashMap<Vec<char>, i32> = HashMap::new();
-    for word in phrases{
-        for n in 0..(word.len()-1){
-            let vector = vec![word[n], word[n+1]];
+
+    for word in phrases {
+        for n in 0..(word.len() - 1) {
+            let vector = [word[n].chars().collect::<Vec<char>>(), word[n + 1].chars().collect::<Vec<char>>()]
+                .concat();
+            
             let counter = result.entry(vector).or_insert(0);
             *counter += 1;
         }
     }
+
     result
 }
 
@@ -46,27 +61,46 @@ fn char_pair_leader(vector: &HashMap<Vec<char>, i32>) -> (Vec<char>, i32) {
         }
     }
 
-    result
+    result } 
+
+fn merge_chars(input: Vec<char>) -> String{
+     input.iter().collect() 
 }
 
-/* 
-fn update_training_phrases() {
-
+fn update_vocabulary(training_chars: &Vec<Vec<String>>, vocabulary: &mut Vec<String>){
+    let result = char_pair_frequency(&training_chars);
+    let finished = char_pair_leader(&result);
+    vocabulary.push(merge_chars(finished.0));
 }
 
-fn increase_vocabulary(input: Vec<Vec<char>>, vocabulary: Vec<char>, size: usize)  -> Vec<char>{
-    let mut result: Vec<char> = Vec::new();
-    while vocabulary.len() < size {
-        let char_pair_leader = pair_frequency(&input).keys();
-        println!("{}", char_pair_leader);
-        // check the frequency needed
-        // update the training phrases
-        // repeat
+fn update_phrases(training_chars: &mut Vec<Vec<String>>, vocabulary: &mut Vec<String>) {
+    if vocabulary.is_empty(){
+        return;
     }
 
-    result
+    let last_character = vocabulary.last().unwrap();
+    for word in training_chars.iter_mut(){
+        let mut s = 0;
+        while s < (word.len() - 1){
+            let combined = word[s].clone() + &word[s + 1];
+            if combined == *last_character{
+                word.remove(s);
+                word[s] = last_character.clone();
+            }
+            else{
+                s+=1;
+            }
+        }
+    }
 }
-*/
+
+fn update(training_chars: &mut Vec<Vec<String>>, vocabulary: &mut Vec<String>, size: usize) {
+    (0..size).for_each(|_| {
+        update_vocabulary(training_chars, vocabulary);
+        update_phrases(training_chars, vocabulary);
+    });
+}
+
 
 fn main(){
     let training_data: Vec<&str> = vec![
@@ -105,11 +139,5 @@ fn main(){
 
     //i need to remove the whitespaces.
 
-    let reference_phrases = string_to_chars(training_data);
-    let _initial_vocabulary = initialize_vocabulary(&reference_phrases);
-    let result = char_pair_frequency(&reference_phrases);
-    let finished = char_pair_leader(&result);
-
-    println!("{:?}", finished);
-
+    let mut reference_phrases = string_to_chars(training_data);
 }
