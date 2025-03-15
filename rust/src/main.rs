@@ -2,21 +2,21 @@
 
 use std::{collections::{HashMap, HashSet}, vec};
 
-fn break_letters(input: Vec<&str>) -> Vec<Vec<char>> {
+fn string_to_chars(input: Vec<&str>) -> Vec<Vec<char>> {
     let result: Vec<Vec<char>> = input
         .iter() 
-        .map(|phrase| phrase.chars().collect()) 
+        .map(|phrase| phrase.chars().filter(|c| !c.is_whitespace()).collect()) 
         .collect(); 
 
     result
 }
 
-fn get_unique_symbols(input: &Vec<Vec<char>>) -> Vec<char> {
+fn initialize_vocabulary(input: &Vec<Vec<char>>) -> Vec<char> {
     let mut unique_chars = HashSet::new();
     let mut result = Vec::new();
 
-    for phrase in input {
-        for letter in phrase {
+    for letters in input {
+        for letter in letters {
             if unique_chars.insert(*letter) { 
                 result.push(*letter); 
             }
@@ -25,28 +25,28 @@ fn get_unique_symbols(input: &Vec<Vec<char>>) -> Vec<char> {
     result
 }
 
-fn pair_frequency(array: &Vec<Vec<char>>) -> HashMap<Vec<char>, i32> {
-    let mut hash: HashMap<Vec<char>, i32> = HashMap::new();
-    for word in array{
+fn char_pair_frequency(phrases: &Vec<Vec<char>>) -> HashMap<Vec<char>, i32> {
+    let mut result: HashMap<Vec<char>, i32> = HashMap::new();
+    for word in phrases{
         for n in 0..(word.len()-1){
             let vector = vec![word[n], word[n+1]];
-            let counter = hash.entry(vector).or_insert(0);
+            let counter = result.entry(vector).or_insert(0);
             *counter += 1;
         }
     }
-    hash
+    result
 }
 
-fn biggest_pair(vector: &HashMap<Vec<char>, i32>) -> (Vec<char>, i32) {
-    let mut biggest: (Vec<char>, i32) = (Vec::new(), i32::MIN);
+fn char_pair_leader(vector: &HashMap<Vec<char>, i32>) -> (Vec<char>, i32) {
+    let mut result: (Vec<char>, i32) = (Vec::new(), i32::MIN);
 
     for (key, &value) in vector.iter() {
-        if value > biggest.1 {
-            biggest = (key.clone(), value);
+        if value > result.1 {
+            result = (key.clone(), value);
         }
     }
 
-    biggest
+    result
 }
 
 /* 
@@ -57,8 +57,8 @@ fn update_training_phrases() {
 fn increase_vocabulary(input: Vec<Vec<char>>, vocabulary: Vec<char>, size: usize)  -> Vec<char>{
     let mut result: Vec<char> = Vec::new();
     while vocabulary.len() < size {
-        let biggest_pair = pair_frequency(&input).keys();
-        println!("{}", biggest_pair);
+        let char_pair_leader = pair_frequency(&input).keys();
+        println!("{}", char_pair_leader);
         // check the frequency needed
         // update the training phrases
         // repeat
@@ -105,10 +105,10 @@ fn main(){
 
     //i need to remove the whitespaces.
 
-    let reference_phrases = break_letters(training_data);
-    let _initial_vocabulary = get_unique_symbols(&reference_phrases);
-    let result = pair_frequency(&reference_phrases);
-    let finished = biggest_pair(&result);
+    let reference_phrases = string_to_chars(training_data);
+    let _initial_vocabulary = initialize_vocabulary(&reference_phrases);
+    let result = char_pair_frequency(&reference_phrases);
+    let finished = char_pair_leader(&result);
 
     println!("{:?}", finished);
 
