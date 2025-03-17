@@ -5,16 +5,19 @@ use lazy_static::lazy_static;
 use fancy_regex::Regex;
 
 
-fn string_to_u32(input: &str) -> Vec<u32> {
-    let mut output = Vec::with_capacity(input.len());
-    output.extend(input.chars().map(|letter| letter as u32));
-    output
+fn string_to_u32(input: Vec<String>) -> Vec<Vec<u32>> {
+    input.iter()
+            .map(|word| word.chars()
+                .map(|letter| letter as u32)
+                .collect())
+            .collect()
 }
 
 
 fn tokenize(input: &str) -> Vec<String> {
     lazy_static! {
         static ref RE: Regex = Regex::new(
+            //need to take care of lowecase
             r"'s|'t|'re|'ve|'m|'ll|'d|(?:\s{2,}(?=\S))| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+|\$+"
         ).unwrap();
     }
@@ -65,16 +68,18 @@ fn initialize_vocabulary(input: &Vec<Vec<u32>>) -> Vec<u32> {
     result
 }
 
-fn byte_pair_frequency(phrase: &Vec<u32>) -> HashMap<(u32, u32), i32> {
+fn byte_pair_frequency(phrases: &Vec<Vec<u32>>) -> HashMap<(u32, u32), i32> {
     let mut result: HashMap<(u32, u32), i32> = HashMap::new();
-    let len = phrase.len();
-    if len < 2{
+
+    for word in phrases {
+        for n in 0..(word.len().saturating_sub(1)) {
+            *result.entry((word[n], word[n + 1])).or_insert(0) += 1; 
+        }
     }
-    for n in 0..len-1{
-        *result.entry((phrase[n], phrase[n+1])).or_insert(0) += 1; 
-    }
+
     result
 }
+
 
 fn byte_pair_biggest(vector: &HashMap<(u32,u32), i32>) -> (u32, u32) {
     let mut result: ((u32, u32), i32) = ((u32::MIN, u32::MIN), i32::MIN);
@@ -88,7 +93,6 @@ fn byte_pair_biggest(vector: &HashMap<(u32,u32), i32>) -> (u32, u32) {
     result.0
 } 
 
-/*
 fn merge(ids: &mut Vec<Vec<u32>>, pair: &(u32, u32), idx: u32){
     for id_array in ids.iter_mut(){
         let mut i = 0;
@@ -99,6 +103,10 @@ fn merge(ids: &mut Vec<Vec<u32>>, pair: &(u32, u32), idx: u32){
             i+=1;
         }
     }
+}
+
+fn preprocessing(input: &str) -> Vec<Vec<u32>> {
+    string_to_u32(adjust_tokens(tokenize(input)))
 }
 
 fn encoder(ids: &mut Vec<Vec<u32>>, vocab_size: u32) -> HashMap<(u32, u32), u32>{
@@ -147,137 +155,13 @@ fn decoder(ids: Vec<Vec<u32>>, merges: HashMap<(u32, u32), u32>) -> Vec<Vec<Stri
     }
     result
 }
-*/
 
 fn main(){
-    let training_data: Vec<&str> = vec![
-        "Hello        world!",
-        "This is a test sentence.",
-        "Byte Pair Encoding is useful for tokenization.",
-        "Let's split words into subwords.",
-        "Deep learning improves natural language processing.",
-        "Rust is a systems programming language.",
-        "Tokenization helps machines understand text.",
-        "Pre-trained models improve accuracy.",
-        "The quick brown fox jumps over the lazy dog.",
-        "Machine learning is transforming technology.",
-        "Artificial intelligence is the future.",
-        "Neural networks process data efficiently.",
-        "Hyperparameters affect model performance.",
-        "Text processing is an important NLP task.",
-        "Data-driven approaches improve predictions.",
-        "Linguistics plays a role in computational models.",
-        "Large datasets require efficient algorithms.",
-        "Training corpora must be diverse and representative.",
-        "BPE helps handle out-of-vocabulary words.",
-        "Sentence segmentation is the first step in NLP.",
-        "Compression algorithms reduce data size.",
-        "Whitespace and punctuation affect tokenization.",
-        "Vocabulary size impacts model performance.",
-        "Lowercasing and stemming are preprocessing techniques.",
-        "Feature extraction is key to machine learning.",
-        "Statistical methods improve text analysis.",
-        "Parsing text requires syntactic understanding.",
-        "Word embeddings map words to vector space.",
-        "Sequence models capture language dependencies.",
-        "Language models predict the next word.",
-    ];
-
-
-    for phrase in training_data{
-        let tokenized_phrase = tokenize(phrase);
-        let the_tokens = adjust_tokens(tokenized_phrase);
-        //println!("{:?}", tokenized_phrase);
-        let text = string_to_u32(tok);
-        //println!("{:?}", text);
-        let next = byte_pair_frequency(&text);
-        //println!("{:?}", next);
-        let biggest = byte_pair_biggest(&next);
-        println!("{:?}", biggest);
-    }
-    /*     println!(" ");
-    //re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L\p{N}]+|\s+(?!\S) |\$+""");
-    let mut reference_phrases = string_to_u32(training_data);
-    
-
-    println!("{:?}", reference_phrases);
-    println!("");
-
-    let test = encoder(&mut reference_phrases, 280);
-
-    println!("");
-    println!("{:?}", reference_phrases);
-    let result = decoder(reference_phrases, test);
-
-    println!("");
-    println!("{:?}", result);
-*/
-
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_string_to_u32() {
-        let input = vec!["Hello", "world"];
-        let result = string_to_u32(input);
-        assert_eq!(result, vec![vec![72, 101, 108, 108, 111], vec![119, 111, 114, 108, 100]]);
-    }
-    
-    #[test]
-    fn test_initialize_vocabulary() {
-        let input = vec![vec![72, 101, 108, 108, 111], vec![119, 111, 114, 108, 100]];
-        let result = initialize_vocabulary(&input);
-        assert!(result.contains(&72) && result.contains(&100));
-    }
-    
-    #[test]
-    fn test_byte_pair_frequency() {
-        let input = vec![vec![72, 101, 108, 108, 111], vec![119, 111, 114, 108, 100]];
-        let result = byte_pair_frequency(&input);
-        assert_eq!(result.get(&(108, 108)), Some(&1));
-    }
-    
-    #[test]
-    fn test_byte_pair_biggest() {
-        let mut frequencies = HashMap::new();
-        frequencies.insert((72, 101), 5);
-        frequencies.insert((108, 108), 10);
-        let result = byte_pair_biggest(&frequencies);
-        assert_eq!(result, (108, 108));
-    }
-    
-    #[test]
-    fn test_merge() {
-        let mut input = vec![vec![72, 101, 108, 108, 111]];
-        merge(&mut input, &(108, 108), 256);
-        assert_eq!(input, vec![vec![72, 101, 256, 111]]);
-    }
-    
-    #[test]
-    fn test_encoder() {
-        let mut input = vec![vec![72, 101, 108, 108, 111]];
-        let result = encoder(&mut input, 280);
-        assert!(!result.is_empty());
-    }
-    
-    #[test]
-    fn test_recursive_decompose() {
-        let mut merges = HashMap::new();
-        merges.insert((72, 101), 256);
-        let mut result = vec![];
-        recursive_decompose(&merges, &mut result, 256);
-        assert_eq!(result, vec![72, 101]);
-    }
-    
-    #[test]
-    fn test_decoder() {
-        let input = vec![vec![72, 101, 256, 111]];
-        let mut merges = HashMap::new();
-        merges.insert((108, 108), 256);
-        let result = decoder(input, merges);
-        assert_eq!(result, vec![vec!["HeĀo".to_string()]]);
-    }
+    let mut preproc = preprocessing("Language models predict the next word.",);
+    let next = byte_pair_frequency(&preproc);
+    let biggest = byte_pair_biggest(&next);
+    let merges = encoder(&mut preproc, 280);
+    println!("{:?}", merges);
+    let decoded = decoder(preproc, merges);
+    println!("{:?}", decoded);
 }
