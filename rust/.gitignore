@@ -1,0 +1,12 @@
+# macOS system files
+.DS_Store
+
+# VS Code settings
+.vscode/
+
+# Rust build artifacts
+target/
+
+# C files (if not needed in Git)
+c/tensor_program
+c/test.c

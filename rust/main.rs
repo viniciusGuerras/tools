@@ -59,7 +59,6 @@ fn merge(ids: &mut Vec<Vec<u32>>, pair: &(u32, u32), idx: u32){
             }
             i+=1;
         }
-
     }
 }
 
@@ -107,10 +106,8 @@ fn decoder(ids: Vec<Vec<u32>>, merges: HashMap<(u32, u32), u32>) -> Vec<Vec<Stri
 
         result.push(vec![decoded_chars]);
     }
-
     result
 }
-
 
 fn main(){
     let training_data: Vec<&str> = vec![
@@ -149,7 +146,9 @@ fn main(){
 
     let mut reference_phrases = string_to_u32(training_data);
     
+
     let test = encoder(&mut reference_phrases, 280);
+    println!("");
     println!("{:?}", reference_phrases);
     let result = decoder(reference_phrases, test);
     println!("{:?}", result);
